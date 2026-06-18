@@ -489,8 +489,9 @@ const handleSimpanAbsensi = async (e) => {
     alert("Absensi berhasil disimpan!");
   }
 };
-    const fetchKaryawan = async () => {
-    const { data, error } = await supabase.from('karyawan').select('*');
+ const fetchKaryawan = async () => {
+    if (!klinikId) return; // <--- PASTIKAN KLINIK ID ADA
+    const { data, error } = await supabase.from('karyawan').select('*').eq('klinik_id', klinikId);
     if (!error && data) setKaryawanData(data);
   };
 
@@ -499,6 +500,7 @@ const handleSimpanAbsensi = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const newKaryawan = {
+      klinik_id: klinikId, // <--- SUNTIKAN KLINIK DINAMIS
       nama: formData.get('nama'),
       jabatan: formData.get('jabatan'),
       nip: formData.get('nip'),
@@ -515,6 +517,7 @@ const handleSimpanAbsensi = async (e) => {
       alert("Data Karyawan berhasil ditambahkan!");
     }
   };
+
   const handleSimpanPasienBaru = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -533,7 +536,7 @@ const handleSimpanAbsensi = async (e) => {
       bpjs: isBpjs, 
       satu_sehat: true, 
       last_visit: tanggalSekarang,
-      klinik_id: 'klinik_pusat' 
+      klinik_id: klinikId // <--- MENGGANTI 'klinik_pusat' MENJADI DINAMIS
     };
 
     // 2. Tembakkan ke tabel Pasien Supabase
@@ -550,7 +553,7 @@ const handleSimpanAbsensi = async (e) => {
       nama: formData.get('nama'),
       layanan: formData.get('layanan'),
       status: "Menunggu",
-      klinik_id: 'klinik_pusat'
+      klinik_id: klinikId // <--- MENGGANTI 'klinik_pusat' MENJADI DINAMIS
     };
 
     // 4. Tembakkan ke tabel Antrian Supabase
@@ -570,7 +573,7 @@ const handleSimpanAbsensi = async (e) => {
     setDobInput(''); 
     setActiveMenu('antrian'); 
   };
-
+  
   const handleSimpanDatabaseLama = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
