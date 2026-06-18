@@ -20,10 +20,15 @@ const initialUsers = [
 const LandingPage = ({ onLogin }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState(''); // Tambahan state password
+  const [passwordInput, setPasswordInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Konfigurasi WhatsApp Admin
+  const nomorWhatsAppAdmin = "6285385260240"; 
+  const pesanTrial = "Halo Admin KlinikCerdas, saya tertarik mencoba Gratis Trial 3 Hari aplikasinya. Bagaimana caranya?";
+  const pesanPremium = "Halo Admin KlinikCerdas, saya ingin berlangganan Paket Premium Rp 99rb/bulan untuk klinik saya.";
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -57,7 +62,8 @@ const LandingPage = ({ onLogin }) => {
       onLogin(userAktif);
       navigate('/dashboard');
     }
-  }; //
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 overflow-x-hidden">
       {/* Navbar */}
@@ -82,7 +88,7 @@ const LandingPage = ({ onLogin }) => {
         </div>
       </nav>
 
-      {/* Login Modal */}
+      {/* Login Modal (Tetap menggunakan aslinya karena sudah berfungsi baik) */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border-t-4 border-teal-500 animate-in fade-in zoom-in duration-200">
@@ -102,7 +108,6 @@ const LandingPage = ({ onLogin }) => {
                 />
               </div>
 
-              {/* Tambahan Kolom Password */}
               <div className="mb-4">
                 <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
                 <input 
@@ -137,28 +142,50 @@ const LandingPage = ({ onLogin }) => {
         </div>
       )}
 
-      {/* Hero Section */}
-      <div className="pt-32 pb-20 bg-gradient-to-b from-teal-50 to-white text-center px-4 relative overflow-hidden">
+      {/* Hero Section Baru */}
+      <div className="pt-32 pb-16 bg-gradient-to-b from-teal-50 to-white text-center px-4 relative overflow-hidden">
         <div className="absolute top-20 left-10 text-teal-100 opacity-50"><HeartPulse size={120} /></div>
         <div className="absolute bottom-10 right-10 text-amber-100 opacity-50"><Activity size={150} /></div>
         
-        <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 max-w-4xl mx-auto leading-tight tracking-tight relative z-10">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 max-w-4xl mx-auto leading-tight tracking-tight relative z-10">
           Ubah Klinik Anda Jadi Lebih <span className="text-teal-600 block mt-2">Modern, Profesional, dan Efisien</span>
         </h1>
-        <p className="mt-6 text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed relative z-10">
+        <p className="mt-6 text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed relative z-10 mb-10">
           Dari manajemen antrian, rekam medis elektronik, pembukuan keuangan, hingga laporan otomatis. Semua terselesaikan dalam satu platform yang praktis.
         </p>
         
-        <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4 relative z-10">
-          <button onClick={() => setShowLoginModal(true)} className="bg-teal-600 text-white px-8 py-3.5 rounded-full font-bold text-lg hover:bg-teal-700 transition shadow-xl hover:shadow-teal-600/20 flex items-center justify-center gap-2">
-            <Calendar size={20} /> Coba Demo Sekarang
-          </button>
-          <a href="#harga" className="bg-white text-teal-800 border-2 border-teal-100 px-8 py-3.5 rounded-full font-bold text-lg hover:bg-teal-50 hover:border-teal-200 transition shadow-sm flex items-center justify-center gap-2">
+        <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4 relative z-10 mb-16">
+          <a 
+            href={`https://wa.me/${nomorWhatsAppAdmin}?text=${encodeURIComponent(pesanTrial)}`}
+            target="_blank" rel="noreferrer"
+            className="bg-teal-600 text-white px-8 py-3.5 rounded-full font-bold text-lg hover:bg-teal-700 transition shadow-xl hover:shadow-teal-600/20 flex items-center justify-center gap-2"
+          >
+            <Calendar size={20} /> Coba Trial 3 Hari
+          </a>
+          <a 
+            href="#harga" 
+            className="bg-white text-teal-800 border-2 border-teal-100 px-8 py-3.5 rounded-full font-bold text-lg hover:bg-teal-50 hover:border-teal-200 transition shadow-sm flex items-center justify-center gap-2"
+          >
             <DollarSign size={20} /> Lihat Paket Harga
           </a>
         </div>
+
+        {/* Gambar Mockup Dashboard */}
+        <div className="relative mx-auto w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 p-2 z-10">
+          <div className="bg-slate-100 rounded-xl overflow-hidden aspect-video flex items-center justify-center relative">
+            <img 
+              src="/dashboard-preview.png" 
+              alt="Tampilan Dashboard KlinikCerdas" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "https://placehold.co/1200x675/e2e8f0/475569?text=Screenshot+Dashboard+Akan+Tampil+Di+Sini";
+              }}
+            />
+          </div>
+        </div>
       </div>
-      {/* --- KODE FITUR & HARGA YANG HILANG --- */}
+
       {/* Bagian Fitur */}
       <div id="fitur" className="py-20 bg-white px-4">
         <div className="max-w-7xl mx-auto">
@@ -167,7 +194,6 @@ const LandingPage = ({ onLogin }) => {
             <p className="mt-4 text-slate-500">Semua yang Anda butuhkan untuk menjalankan klinik modern.</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Card 1 */}
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-lg transition">
               <div className="bg-teal-100 w-12 h-12 rounded-lg flex items-center justify-center text-teal-600 mb-4">
                 <Activity size={24} />
@@ -175,7 +201,6 @@ const LandingPage = ({ onLogin }) => {
               <h3 className="text-xl font-bold mb-2 text-slate-800">Antrian Real-time</h3>
               <p className="text-slate-600">Pantau pergerakan antrian pasien secara langsung. Bebas penumpukan di ruang tunggu.</p>
             </div>
-            {/* Card 2 */}
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-lg transition">
               <div className="bg-amber-100 w-12 h-12 rounded-lg flex items-center justify-center text-amber-600 mb-4">
                 <ShieldCheck size={24} />
@@ -183,7 +208,6 @@ const LandingPage = ({ onLogin }) => {
               <h3 className="text-xl font-bold mb-2 text-slate-800">Rekam Medis (RM)</h3>
               <p className="text-slate-600">Pencatatan riwayat penyakit, alergi, dan diagnosa yang aman, rapi, dan mudah dicari.</p>
             </div>
-            {/* Card 3 */}
             <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 hover:shadow-lg transition">
               <div className="bg-rose-100 w-12 h-12 rounded-lg flex items-center justify-center text-rose-600 mb-4">
                 <DollarSign size={24} />
@@ -195,46 +219,63 @@ const LandingPage = ({ onLogin }) => {
         </div>
       </div>
 
-      {/* Bagian Harga */}
+      {/* Bagian Harga Baru */}
       <div id="harga" className="py-20 bg-slate-50 px-4 border-t border-slate-100">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-slate-900 mb-12">Pilih Paket Sesuai Kebutuhan</h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-            {/* Paket Gratis */}
+            
+            {/* Paket Trial */}
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-              <h3 className="text-xl font-bold text-slate-800">Starter</h3>
+              <h3 className="text-xl font-bold text-slate-800">Starter Trial</h3>
               <div className="text-4xl font-extrabold text-teal-600 my-4">Gratis</div>
               <ul className="text-left text-slate-600 space-y-3 mb-8">
-                <li>✓ Maksimal 50 pasien / bulan</li>
-                <li>✓ Fitur Antrian Dasar</li>
-                <li>✓ 1 Akun Dokter</li>
+                <li>✓ Coba semua fitur Premium</li>
+                <li>✓ Masa aktif 3 Hari</li>
+                <li>✓ Panduan penggunaan aplikasi</li>
               </ul>
-              <button className="w-full py-3 rounded-full border-2 border-teal-600 text-teal-600 font-bold hover:bg-teal-50">Mulai Gratis</button>
+              <a 
+                href={`https://wa.me/${nomorWhatsAppAdmin}?text=${encodeURIComponent(pesanTrial)}`}
+                target="_blank" rel="noreferrer"
+                className="block w-full py-3 rounded-full border-2 border-teal-600 text-teal-600 font-bold hover:bg-teal-50 transition"
+              >
+                Hubungi Admin
+              </a>
             </div>
-            {/* Paket Pro */}
+
+            {/* Paket Premium */}
             <div className="bg-teal-600 p-8 rounded-3xl shadow-xl text-white transform md:-translate-y-4 relative">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">POPULER</div>
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full">
+                POPULER
+              </div>
               <h3 className="text-xl font-bold">Premium</h3>
-              <div className="text-4xl font-extrabold my-4">Rp 199k<span className="text-sm font-normal opacity-80">/bln</span></div>
+              <div className="text-4xl font-extrabold my-4">Rp 99k<span className="text-sm font-normal opacity-80">/bln</span></div>
               <ul className="text-left space-y-3 mb-8 opacity-90">
-                <li>✓ Pasien Tanpa Batas</li>
+                <li>✓ Pasien & Rekam Medis Tanpa Batas</li>
                 <li>✓ Semua Fitur Laporan</li>
                 <li>✓ Unlimited Akun Karyawan</li>
-                <li>✓ Prioritas Bantuan</li>
+                <li>✓ Prioritas Bantuan 24/7</li>
               </ul>
-              <button className="w-full py-3 rounded-full bg-white text-teal-600 font-bold hover:bg-slate-50">Pilih Premium</button>
+              <a 
+                href={`https://wa.me/${nomorWhatsAppAdmin}?text=${encodeURIComponent(pesanPremium)}`}
+                target="_blank" rel="noreferrer"
+                className="block w-full py-3 rounded-full bg-white text-teal-600 font-bold hover:bg-slate-50 transition shadow-lg text-center"
+              >
+                Berlangganan Sekarang
+              </a>
             </div>
+
           </div>
         </div>
       </div>
-      {/* --- BATAS AKHIR KODE FITUR & HARGA --- */}
-      {/* Footer / Info Singkat */}
+
+      {/* Footer */}
       <footer className="bg-white py-6 border-t border-slate-100 text-center text-slate-400 text-sm">
         <p>&copy; {new Date().getFullYear()} KlinikCerdas. All rights reserved.</p>
       </footer>
     </div>
   );
-}; 
+};
 
 // --- KOMPONEN DASHBOARD (SISTEM KLINIK) ---
 const Dashboard = ({ 
