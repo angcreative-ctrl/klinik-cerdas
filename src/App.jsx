@@ -253,6 +253,7 @@ const [absensiData, setAbsensiData] = useState([]);
 const [showAbsensiModal, setShowAbsensiModal] = useState(false);
 const [penggajianData, setPenggajianData] = useState([]);
 const [showPenggajianModal, setShowPenggajianModal] = useState(false);
+const [klinikId, setKlinikId] = useState(null);
 
   // Fungsi menyimpan akun baru ke Supabase
   const handleSimpanAkun = async (e) => {
@@ -862,20 +863,38 @@ const handleUpdateReminder = async (e) => {
     setLaporanData(allData); 
   };
 
+  // --- TAHAP 1: CARI KLINIK ID SAAT USER LOGIN ---
   React.useEffect(() => {
-    if (user) {
+    const fetchUserKlinik = async () => {
+      if (user) {
+        // Asumsi tabel profilmu bernama 'users'
+        const { data, error } = await supabase
+          .from('users') 
+          .select('klinik_id')
+          .eq('id', user.id)
+          .single();
+
+        if (data && data.klinik_id) {
+          setKlinikId(data.klinik_id); // Simpan ke ingatan aplikasi
+        }
+      }
+    };
+    fetchUserKlinik();
+  }, [user]);
+
+  // --- TAHAP 2: TARIK DATA HANYA SETELAH KLINIK ID DITEMUKAN ---
+  React.useEffect(() => {
+    if (klinikId) {
       fetchLaporanData();
       fetchKaryawan();
       fetchAbsensi();
       fetchPenggajian();
     }
-  }, [user]);
+  }, [klinikId]);
+
   // -----------------------------------------------------------
 
-  // (Baris aslimu yang sudah ada di bawahnya)
-  // const handleSimpanLaporan = async (e) => {
-
- const handleSimpanLaporan = async (e) => {
+  const handleSimpanLaporan = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const formDataObj = Object.fromEntries(formData.entries());
@@ -885,6 +904,7 @@ const handleUpdateReminder = async (e) => {
       if (activeMenu === 'lap_anc') {
         const { error } = await supabase.from('laporan_anc').insert([{
           id: `ANC-${Date.now()}`,
+          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
           nama_pasien: formDataObj.pasien,
           tanggal_periksa: formDataObj.tanggal || null,
           hpht: formDataObj.hpht || null,
@@ -894,7 +914,7 @@ const handleUpdateReminder = async (e) => {
           bb_tb: formDataObj.bb_tb,
           lila: formDataObj.lila,
           hb: formDataObj.hb,
-          golongan_darah: formDataObj.gol_darah, // Menyesuaikan HTML-mu
+          golongan_darah: formDataObj.gol_darah,
           albumin: formDataObj.albumin,
           hiv: formDataObj.hiv,
           hepatitis_b: formDataObj.hepatitis_b,
@@ -907,6 +927,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_partus') {
         const { error } = await supabase.from('laporan_partus').insert([{
           id: `PRT-${Date.now()}`,
+          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
           nama_pasien: formDataObj.pasien,
           tanggal_partus: formDataObj.tanggal || null,
           gpa: formDataObj.gpa,
@@ -927,6 +948,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_shk') {
         const { error } = await supabase.from('laporan_shk').insert([{
           id: `SHK-${Date.now()}`,
+          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
           nama_ibu: formDataObj.pasien,
           tanggal_kunjungan: formDataObj.tanggal || null,
           nama_bayi: formDataObj.nama_bayi,
@@ -952,6 +974,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_imunisasi') {
         const { error } = await supabase.from('laporan_imunisasi').insert([{
           id: `IMN-${Date.now()}`,
+          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
           no_rm: formDataObj.no_rm_bayi,
           nama_bayi: formDataObj.nama_bayi,
           nik_bayi: formDataObj.nik_bayi,
@@ -976,6 +999,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_kb') {
         const { error } = await supabase.from('laporan_kb').insert([{
            id: `KBA-${Date.now()}`,
+           klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
            nama_pasien: formDataObj.pasien,
            tanggal_kunjungan: formDataObj.tanggal || null,
            metode_kontrasepsi: formDataObj.metode,
@@ -992,6 +1016,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_bidan') {
         const { error } = await supabase.from('laporan_bidan').insert([{
           id: `BDN-${Date.now()}`,
+          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
           tanggal: formDataObj.tanggal || null,
           nama_pasien: formDataObj.pasien,
           keterangan_hasil: formDataObj.keterangan
@@ -1000,10 +1025,10 @@ const handleUpdateReminder = async (e) => {
       }
     } catch (err) {
       alert("Gagal menyimpan Laporan ke Database: " + err.message);
-      return; // Berhenti jika gagal tembak database
+      return; 
     }
 
-    // --- 2. LOGIKA LAMA: TAMPILKAN DI TABEL LAYAR (TIDAK ADA YANG DIUBAH) ---
+    // --- 2. LOGIKA LAMA: TAMPILKAN DI TABEL LAYAR ---
     let keteranganVal = formDataObj.keterangan || '';
     
     if (activeMenu === 'lap_kb') {
