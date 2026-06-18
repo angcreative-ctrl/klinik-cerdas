@@ -254,6 +254,10 @@ const [showAbsensiModal, setShowAbsensiModal] = useState(false);
 const [penggajianData, setPenggajianData] = useState([]);
 const [showPenggajianModal, setShowPenggajianModal] = useState(false);
 const [klinikId, setKlinikId] = useState(null);
+// State untuk Fitur Ganti Password
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Fungsi menyimpan akun baru ke Supabase
   const handleSimpanAkun = async (e) => {
@@ -573,7 +577,7 @@ const handleSimpanAbsensi = async (e) => {
     setDobInput(''); 
     setActiveMenu('antrian'); 
   };
-  
+
   const handleSimpanDatabaseLama = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -1092,6 +1096,38 @@ const handleUpdateReminder = async (e) => {
     document.body.removeChild(link);
   };
 
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+
+    // Validasi 1: Apakah password dan konfirmasinya sama?
+    if (newPassword !== confirmPassword) {
+      alert("Password baru dan konfirmasi password tidak cocok!");
+      return;
+    }
+
+    // Validasi 2: Apakah password terlalu pendek? (Supabase minimal 6 karakter)
+    if (newPassword.length < 6) {
+      alert("Password minimal harus 6 karakter!");
+      return;
+    }
+
+    // Eksekusi ganti password ke Supabase Auth
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      alert("Gagal memperbarui password: " + error.message);
+    } else {
+      alert("🔐 Password berhasil diperbarui! Sekarang akun Anda sepenuhnya aman.");
+      setShowChangePasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  };
+
+ 
+
   const handleLogout = () => {
     onLogout();
     navigate('/');
@@ -1160,6 +1196,13 @@ const handleUpdateReminder = async (e) => {
             </div>
 
             <div className="p-4 border-t border-teal-800 bg-teal-950">
+              <button 
+            type="button"
+            onClick={() => setShowChangePasswordModal(true)}
+            className="flex items-center gap-2 text-teal-200 hover:text-white mb-4 w-full transition-colors"
+          >
+            <span className="text-lg">🔑</span> Ganti Password
+          </button>
               <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 w-full px-2 py-2 font-medium transition">
                 <LogOut size={20} /> Keluar Aplikasi
               </button>
@@ -3374,6 +3417,66 @@ const handleUpdateReminder = async (e) => {
         )}
         
       </div>
+      {/* ================= MODAL GANTI PASSWORD ================= */}
+      {showChangePasswordModal && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">Keamanan Akun</h3>
+              <button 
+                onClick={() => { setShowChangePasswordModal(false); setNewPassword(''); setConfirmPassword(''); }}
+                className="text-slate-400 hover:text-red-500 text-xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdatePassword} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Password Baru</label>
+                <input 
+                  type="password" 
+                  required 
+                  placeholder="Minimal 6 karakter"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Konfirmasi Password Baru</label>
+                <input 
+                  type="password" 
+                  required 
+                  placeholder="Ulangi password baru"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button 
+                  type="button"
+                  onClick={() => { setShowChangePasswordModal(false); setNewPassword(''); setConfirmPassword(''); }}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg"
+                >
+                  Simpan Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 };
