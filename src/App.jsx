@@ -1096,7 +1096,7 @@ const handleUpdateReminder = async (e) => {
     document.body.removeChild(link);
   };
 
-  const handleUpdatePassword = async (e) => {
+const handleUpdatePassword = async (e) => {
     e.preventDefault();
 
     // Validasi 1: Apakah password dan konfirmasinya sama?
@@ -1105,16 +1105,18 @@ const handleUpdateReminder = async (e) => {
       return;
     }
 
-    // Validasi 2: Apakah password terlalu pendek? (Supabase minimal 6 karakter)
+    // Validasi 2: Apakah password terlalu pendek?
     if (newPassword.length < 6) {
       alert("Password minimal harus 6 karakter!");
       return;
     }
 
-    // Eksekusi ganti password ke Supabase Auth
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword
-    });
+    // Eksekusi ganti password (Update langsung ke tabel database)
+    // Pastikan nama tabelnya 'users' dan kolomnya 'password', sesuaikan jika berbeda.
+    const { error } = await supabase
+      .from('users') 
+      .update({ password: newPassword })
+      .eq('id', user.id); // Mencari baris sesuai ID user yang sedang login
 
     if (error) {
       alert("Gagal memperbarui password: " + error.message);
@@ -1123,10 +1125,12 @@ const handleUpdateReminder = async (e) => {
       setShowChangePasswordModal(false);
       setNewPassword('');
       setConfirmPassword('');
+      
+      // Opsional: Perbarui juga data di 'sesiklinik' agar tetap sinkron
+      const sesiUpdate = { ...user, password: newPassword };
+      localStorage.setItem('sesiklinik', JSON.stringify(sesiUpdate));
     }
   };
-
- 
 
   const handleLogout = () => {
     onLogout();
