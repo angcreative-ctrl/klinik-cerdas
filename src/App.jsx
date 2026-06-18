@@ -172,11 +172,11 @@ const LandingPage = ({ onLogin }) => {
 
         {/* Gambar Mockup Dashboard */}
         <div className="relative mx-auto w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 p-2 z-10">
-          <div className="bg-slate-100 rounded-xl overflow-hidden aspect-video flex items-center justify-center relative">
+          <div className="bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center relative">
             <img 
               src="/dashboard-preview.png" 
               alt="Tampilan Dashboard KlinikCerdas" 
-              className="w-full h-full object-cover"
+              className="w-full h-auto object-contain"
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.src = "https://placehold.co/1200x675/e2e8f0/475569?text=Screenshot+Dashboard+Akan+Tampil+Di+Sini";
