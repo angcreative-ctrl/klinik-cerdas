@@ -1099,24 +1099,21 @@ const handleUpdateReminder = async (e) => {
 const handleUpdatePassword = async (e) => {
     e.preventDefault();
 
-    // Validasi 1: Apakah password dan konfirmasinya sama?
     if (newPassword !== confirmPassword) {
       alert("Password baru dan konfirmasi password tidak cocok!");
       return;
     }
 
-    // Validasi 2: Apakah password terlalu pendek?
     if (newPassword.length < 6) {
       alert("Password minimal harus 6 karakter!");
       return;
     }
 
-    // Eksekusi ganti password (Update langsung ke tabel database)
-    // Pastikan nama tabelnya 'users' dan kolomnya 'password', sesuaikan jika berbeda.
+    // Eksekusi ganti password persis sesuai tabelmu (berdasarkan email)
     const { error } = await supabase
       .from('users') 
       .update({ password: newPassword })
-      .eq('id', user.id); // Mencari baris sesuai ID user yang sedang login
+      .eq('email', user.email); // <--- KITA GUNAKAN KOLOM EMAIL DI SINI
 
     if (error) {
       alert("Gagal memperbarui password: " + error.message);
@@ -1126,11 +1123,13 @@ const handleUpdatePassword = async (e) => {
       setNewPassword('');
       setConfirmPassword('');
       
-      // Opsional: Perbarui juga data di 'sesiklinik' agar tetap sinkron
+      // Memperbarui saku browser agar tidak perlu login ulang
       const sesiUpdate = { ...user, password: newPassword };
       localStorage.setItem('sesiklinik', JSON.stringify(sesiUpdate));
     }
   };
+      
+ 
 
   const handleLogout = () => {
     onLogout();
