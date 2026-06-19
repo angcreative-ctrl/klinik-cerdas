@@ -52,7 +52,8 @@ const LandingPage = ({ onLogin }) => {
       const userAktif = {
         nama: data.nama,
         email: data.email,
-        role: data.role
+        role: data.role,
+        klinik_id: data.klinik_id
       };
       
       // 1. Simpan ke saku browser (localStorage) agar tidak hilang saat F5
