@@ -3553,17 +3553,33 @@ const [financeTransactions, setFinanceTransactions] = useState([]);
 // Tarik data akun asli dari Supabase
   useEffect(() => {
     const fetchAkun = async () => {
-      const { data, error } = await supabase.from('users').select('*');
+      // Pengaman: Jangan tarik data jika belum login
+      if (!user || !user.klinik_id) return; 
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('klinik_id', user.klinik_id); // <--- PIPA PEMISAH KLINIK
+      
       if (data) {
         setUsersData(data);
       }
     };
     fetchAkun();
-  }, []);
+  }, [user]); // <--- Pastikan ada [user] agar data terganti saat beda akun login
 
-useEffect(() => {
+
+  // Tarik semua data operasional Klinik
+  useEffect(() => {
+    // Pengaman: Jangan tarik data jika belum login
+    if (!user || !user.klinik_id) return; 
+
     const ambilDataPasien = async () => {
-      const { data, error } = await supabase.from('pasien').select('*');
+      const { data, error } = await supabase
+        .from('pasien')
+        .select('*')
+        .eq('klinik_id', user.klinik_id); // <--- PIPA PEMISAH KLINIK
+
       if (data) {
         // Kita sesuaikan nama kolom Supabase (snake_case) ke format aplikasi (camelCase)
         const formatData = data.map(p => ({
@@ -3576,21 +3592,28 @@ useEffect(() => {
         setPasienData(formatData);
       }
     };
-    const ambilDataAntrian = async () => {
-    const { data } = await supabase
-      .from('antrian')
-      .select('*')
-      .neq('status', 'Selesai');
 
-    if (data) {
-      const formatAntrian = data.map(a => ({
-        ...a, idAntrian: a.id_antrian, pasienId: a.pasien_id
-      }));
-      setAntrianData(formatAntrian);
-    }
-  };
-const ambilDataTransaksi = async () => {
-      const { data } = await supabase.from('transaksi').select('*');
+    const ambilDataAntrian = async () => {
+      const { data } = await supabase
+        .from('antrian')
+        .select('*')
+        .eq('klinik_id', user.klinik_id) // <--- PIPA PEMISAH KLINIK
+        .neq('status', 'Selesai');
+
+      if (data) {
+        const formatAntrian = data.map(a => ({
+          ...a, idAntrian: a.id_antrian, pasienId: a.pasien_id
+        }));
+        setAntrianData(formatAntrian);
+      }
+    };
+
+    const ambilDataTransaksi = async () => {
+      const { data } = await supabase
+        .from('transaksi')
+        .select('*')
+        .eq('klinik_id', user.klinik_id); // <--- PIPA PEMISAH KLINIK
+
       if (data) {
         const formatTransaksi = data.map(t => ({
           ...t, 
@@ -3600,8 +3623,13 @@ const ambilDataTransaksi = async () => {
         setFinanceTransactions(formatTransaksi);
       }
     };
-  const ambilDataReminder = async () => {
-      const { data } = await supabase.from('reminder').select('*');
+
+    const ambilDataReminder = async () => {
+      const { data } = await supabase
+        .from('reminder')
+        .select('*')
+        .eq('klinik_id', user.klinik_id); // <--- PIPA PEMISAH KLINIK
+
       if (data) {
         // Sesuaikan id_reminder dari database menjadi id untuk layar React
         const formatReminder = data.map(r => ({
@@ -3615,7 +3643,8 @@ const ambilDataTransaksi = async () => {
     ambilDataAntrian();
     ambilDataTransaksi();
     ambilDataReminder();
-  }, []);
+  }, [user]); // <--- Pastikan ada [user] agar data terganti saat beda akun login
+  
 
 
 if (isAuthChecking) {
