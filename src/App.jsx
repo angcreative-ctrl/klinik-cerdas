@@ -1241,17 +1241,21 @@ const handleUpdatePassword = async (e) => {
             </div>
 
             <div className="p-4 border-t border-teal-800 bg-teal-950">
-              <button 
-            type="button"
-            onClick={() => setShowChangePasswordModal(true)}
-            className="flex items-center gap-2 text-teal-200 hover:text-white mb-4 w-full transition-colors"
-          >
-            <span className="text-lg">🔑</span> Ganti Password
-          </button>
-              <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 w-full px-2 py-2 font-medium transition">
-                <LogOut size={20} /> Keluar Aplikasi
-              </button>
-            </div>
+  {/* Tombol Ganti Password disembunyikan khusus akun Demo */}
+  {user?.email !== 'demo@pbm.com' && (
+    <button 
+      type="button"
+      onClick={() => setShowChangePasswordModal(true)}
+      className="flex items-center gap-2 text-teal-200 hover:text-white mb-4 w-full transition-colors"
+    >
+      <span className="text-lg">🔑</span> Ganti Password
+    </button>
+  )}
+
+  <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 w-full px-2 py-2 font-medium transition">
+    <LogOut size={20} /> Keluar Aplikasi
+  </button>
+</div>
           </div>
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
