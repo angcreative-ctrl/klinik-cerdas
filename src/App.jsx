@@ -5,7 +5,7 @@ import {
   MessageSquare, DollarSign, UserPlus, Bell, LogOut, 
   HeartPulse, Building2, Clock, ArrowRight, ChevronDown, 
   ChevronUp, FileText, PlusCircle, MinusCircle, 
-  Trash2, Edit, Calendar, ClipboardList, Stethoscope, Database, Download, X, Settings
+  Trash2, Edit, Calendar, ClipboardList, Stethoscope, Database, Download, Menu, X, Settings
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 // --- DATABASE MOCKUP ---
@@ -1178,46 +1178,75 @@ const handleUpdatePassword = async (e) => {
     navigate('/');
   }
 
-  const listPemasukan = ["Pasien Periksa", "Endorsement", "Kerjasama Brand", "Penjualan Obat", "Lain-lain"];
+ const listPemasukan = ["Pasien Periksa", "Endorsement", "Kerjasama Brand", "Penjualan Obat", "Lain-lain"];
   const listPengeluaran = ["Beli Obat / Farmasi", "Alat Medis", "Perbaikan Klinik", "Gaji & Operasional", "Lain-lain"];
 
+  // TAMBAHAN: State untuk mendeteksi Buka/Tutup menu di layar HP
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <div className="flex h-screen bg-slate-100 font-sans">
+    <div className="flex h-screen bg-slate-100 font-sans relative overflow-x-hidden">
       
-     {/* SIDEBAR */}
-          <div className="w-64 bg-teal-900 text-white shadow-md flex flex-col z-20">
-            <div className="p-6 flex items-center gap-2 border-b border-teal-800 bg-teal-950">
-              <HeartPulse className="h-6 w-6 text-amber-400" />
-              <span className="font-bold text-xl text-white">Klinik<span className="text-amber-400">Cerdas</span></span>
-            </div>
-            
-            <div className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-              {menuItems
-                .filter((item) => bolehAkses(item.id))
-                .map((item) => (
-                  <div key={item.id}>
-                    <button
-                      onClick={() => {
-                        if (item.subItems) {
-                          setExpandedMenu(expandedMenu === item.id ? '' : item.id);
-                        } else {
-                          setActiveMenu(item.id);
-                        }
-                      }}
-                      className={`w-full flex items-center justify-between px-6 py-3 text-left transition ${
-                        (activeMenu === item.id || (item.subItems && expandedMenu === item.id))
-                          ? 'bg-teal-800 text-amber-400 border-l-4 border-amber-400 font-semibold'
-                          : 'text-teal-100 hover:bg-teal-800/50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon size={20} className={activeMenu === item.id ? "text-amber-400" : "text-teal-300"} />
-                        {item.label}
-                      </div>
-                      {item.subItems && (
-                        expandedMenu === item.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />
-                      )}
-                    </button>
+      {/* 1. TOMBOL HAMBURGER (MENGAMBANG KHUSUS DI HP) */}
+      <button 
+        onClick={() => setIsMobileMenuOpen(true)}
+        className="md:hidden absolute top-4 left-4 z-30 bg-teal-900 text-white p-2 rounded-lg shadow-lg hover:bg-teal-800 transition"
+      >
+        <Menu size={24} />
+      </button>
+
+      {/* 2. LATAR GELAP (OVERLAY) - Klik untuk menutup menu */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+      
+      {/* 3. SIDEBAR UTAMA (Disulap jadi Responsif) */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-teal-900 text-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        
+        <div className="p-6 flex items-center justify-between border-b border-teal-800 bg-teal-950">
+          <div className="flex items-center gap-2">
+            <HeartPulse className="h-6 w-6 text-amber-400" />
+            <span className="font-bold text-xl text-white">Klinik<span className="text-amber-400">Cerdas</span></span>
+          </div>
+          
+          {/* Tombol "X" untuk tutup menu di HP */}
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-teal-400 hover:text-white bg-teal-800/50 p-1 rounded-md">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 py-4 overflow-y-auto custom-scrollbar">
+          {menuItems
+            .filter((item) => bolehAkses(item.id))
+            .map((item) => (
+              <div key={item.id}>
+                <button
+                  onClick={() => {
+                    if (item.subItems) {
+                      setExpandedMenu(expandedMenu === item.id ? '' : item.id);
+                    } else {
+                      setActiveMenu(item.id);
+                      // Otomatis menutup sidebar jika menu ditekan di HP
+                      setIsMobileMenuOpen(false); 
+                    }
+                  }}
+                  className={`w-full flex items-center justify-between px-6 py-3 text-left transition ${
+                    (activeMenu === item.id || (item.subItems && expandedMenu === item.id))
+                      ? 'bg-teal-800 text-amber-400 border-l-4 border-amber-400 font-semibold'
+                      : 'text-teal-100 hover:bg-teal-800/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon size={20} className={activeMenu === item.id ? "text-amber-400" : "text-teal-300"} />
+                    {item.label}
+                  </div>
+                  {item.subItems && (
+                    expandedMenu === item.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                  )}
+                </button>
 
                     {item.subItems && expandedMenu === item.id && (
                       <div className="bg-teal-950 py-2">
