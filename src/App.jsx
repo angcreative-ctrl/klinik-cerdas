@@ -912,34 +912,17 @@ const handleUpdateReminder = async (e) => {
     setLaporanData(allData); 
   };
 
-  // --- TAHAP 1: CARI KLINIK ID SAAT USER LOGIN ---
-  React.useEffect(() => {
-    const fetchUserKlinik = async () => {
-      if (user) {
-        // Asumsi tabel profilmu bernama 'users'
-        const { data, error } = await supabase
-          .from('users') 
-          .select('klinik_id')
-          .eq('id', user.id)
-          .single();
-
-        if (data && data.klinik_id) {
-          setKlinikId(data.klinik_id); // Simpan ke ingatan aplikasi
-        }
-      }
-    };
-    fetchUserKlinik();
-  }, [user]);
-
+ 
   // --- TAHAP 2: TARIK DATA HANYA SETELAH KLINIK ID DITEMUKAN ---
   React.useEffect(() => {
-    if (klinikId) {
+    // Kita langsung pakai user.klinik_id bawaan dari saat login
+    if (user && user.klinik_id) {
       fetchLaporanData();
       fetchKaryawan();
       fetchAbsensi();
       fetchPenggajian();
     }
-  }, [klinikId]);
+  }, [user]);
 
   // -----------------------------------------------------------
 
@@ -953,7 +936,7 @@ const handleUpdateReminder = async (e) => {
       if (activeMenu === 'lap_anc') {
         const { error } = await supabase.from('laporan_anc').insert([{
           id: `ANC-${Date.now()}`,
-          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
+          klinik_id: user.klinik_id, // <--- INI SUNTIKAN KLINIKNYA
           nama_pasien: formDataObj.pasien,
           tanggal_periksa: formDataObj.tanggal || null,
           hpht: formDataObj.hpht || null,
@@ -976,7 +959,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_partus') {
         const { error } = await supabase.from('laporan_partus').insert([{
           id: `PRT-${Date.now()}`,
-          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
+          klinik_id: user.klinik_id, // <--- INI SUNTIKAN KLINIKNYA
           nama_pasien: formDataObj.pasien,
           tanggal_partus: formDataObj.tanggal || null,
           gpa: formDataObj.gpa,
@@ -997,7 +980,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_shk') {
         const { error } = await supabase.from('laporan_shk').insert([{
           id: `SHK-${Date.now()}`,
-          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
+          klinik_id: user.klinik_id, // <--- INI SUNTIKAN KLINIKNYA
           nama_ibu: formDataObj.pasien,
           tanggal_kunjungan: formDataObj.tanggal || null,
           nama_bayi: formDataObj.nama_bayi,
@@ -1023,7 +1006,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_imunisasi') {
         const { error } = await supabase.from('laporan_imunisasi').insert([{
           id: `IMN-${Date.now()}`,
-          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
+          klinik_id: user.klinik_id, // <--- INI SUNTIKAN KLINIKNYA
           no_rm: formDataObj.no_rm_bayi,
           nama_bayi: formDataObj.nama_bayi,
           nik_bayi: formDataObj.nik_bayi,
@@ -1048,7 +1031,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_kb') {
         const { error } = await supabase.from('laporan_kb').insert([{
            id: `KBA-${Date.now()}`,
-           klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
+           klinik_id: user.klinik_id, // <--- INI SUNTIKAN KLINIKNYA
            nama_pasien: formDataObj.pasien,
            tanggal_kunjungan: formDataObj.tanggal || null,
            metode_kontrasepsi: formDataObj.metode,
@@ -1065,7 +1048,7 @@ const handleUpdateReminder = async (e) => {
       } else if (activeMenu === 'lap_bidan') {
         const { error } = await supabase.from('laporan_bidan').insert([{
           id: `BDN-${Date.now()}`,
-          klinik_id: klinikId, // <--- INI SUNTIKAN KLINIKNYA
+          klinik_id: user.klinik_id, // <--- INI SUNTIKAN KLINIKNYA
           tanggal: formDataObj.tanggal || null,
           nama_pasien: formDataObj.pasien,
           keterangan_hasil: formDataObj.keterangan
