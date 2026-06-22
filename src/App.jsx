@@ -564,13 +564,24 @@ const handleSimpanAbsensi = async (e) => {
     }
   };
 
-  const handleSimpanPasienBaru = async (e) => {
+ const handleSimpanPasienBaru = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const isBpjs = formData.get('cara_bayar') === 'BPJS';
     const waktuSekarang = Date.now(); // Kunci ID Unik Anti-Kembar
     const newId = `RM-${waktuSekarang}`; 
     const tanggalSekarang = new Date().toLocaleDateString('id-ID');
+    const layananDipilih = formData.get('layanan'); // Ambil kode layanan (lap_anc, dll)
+
+    // Peta nama layanan untuk tampilan di papan Antrian UI
+    const namaLayananMap = {
+      'lap_bidan': 'Pemeriksaan Umum',
+      'lap_anc': 'Pemeriksaan Kehamilan (ANC)',
+      'lap_partus': 'Persalinan (Partus)',
+      'lap_shk': 'Laporan SHK',
+      'lap_kb': 'Keluarga Berencana (KB)',
+      'lap_imunisasi': 'Imunisasi / Anak'
+    };
     
     // 1. Siapkan data Pasien
     const newPasienDB = {
@@ -582,7 +593,7 @@ const handleSimpanAbsensi = async (e) => {
       bpjs: isBpjs, 
       satu_sehat: true, 
       last_visit: tanggalSekarang,
-      klinik_id: klinikId // <--- MENGGANTI 'klinik_pusat' MENJADI DINAMIS
+      klinik_id: user.klinik_id // <--- MENGGUNAKAN USER KLINIK ID YANG PASTI AMAN & ADA
     };
 
     // 2. Tembakkan ke tabel Pasien Supabase
@@ -597,20 +608,49 @@ const handleSimpanAbsensi = async (e) => {
       id_antrian: `A-${waktuSekarang}`,
       pasien_id: newId,
       nama: formData.get('nama'),
-      layanan: formData.get('layanan'),
+      layanan: namaLayananMap[layananDipilih] || layananDipilih, // Konversi kode ke nama cantik di layar
       status: "Menunggu",
-      klinik_id: klinikId // <--- MENGGANTI 'klinik_pusat' MENJADI DINAMIS
+      klinik_id: user.klinik_id // <--- MENGGUNAKAN USER KLINIK ID YANG PASTI AMAN & ADA
     };
 
     // 4. Tembakkan ke tabel Antrian Supabase
-    const { error: errorAntrian } = await supabase.from('antrian').insert([{
-      ...newAntrianDB,
-      klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID UNTUK ANTRIAN
-    }]);
+    const { error: errorAntrian } = await supabase.from('antrian').insert([newAntrianDB]);
     
     if (errorAntrian) {
       alert("Error Simpan Antrian: " + errorAntrian.message);
     }
+
+    // ========================================================
+    // TUGAS BARU: TEMBAK DRAFT KOSONG KE TABEL LAPORAN SECARA OTOMATIS
+    // ========================================================
+    const petaTabelSupabase = {
+      'lap_bidan': 'laporan_bidan',
+      'lap_anc': 'laporan_anc',
+      'lap_partus': 'laporan_partus',
+      'lap_shk': 'laporan_shk',
+      'lap_imunisasi': 'laporan_imunisasi',
+      'lap_kb': 'laporan_kb'
+    };
+
+    const namaTabelTujuan = petaTabelSupabase[layananDipilih];
+
+    if (namaTabelTujuan) {
+      const kodePrefix = layananDipilih.toUpperCase().replace('_', '');
+      
+      // Kirim data draf awal, kolom medis lainnya otomatis NULL/kosong di database
+      const { error: errDraft } = await supabase.from(namaTabelTujuan).insert([{
+        id: `${kodePrefix}-${waktuSekarang}`,
+        nama_pasien: formData.get('nama'),
+        nama_ibu: namaTabelTujuan === 'laporan_shk' ? formData.get('nama') : undefined, // Khusus SHK menggunakan kolom nama_ibu
+        tanggal_periksa: new Date().toISOString().split('T')[0],
+        tanggal_kunjungan: new Date().toISOString().split('T')[0],
+        tanggal: new Date().toISOString().split('T')[0],
+        klinik_id: user.klinik_id
+      }]);
+
+      if (errDraft) console.error("Gagal membuat draf laporan otomatis:", errDraft.message);
+    }
+    // ========================================================
 
     // 5. Perbarui tampilan di layar (UI)
     const newPasienUI = { ...newPasienDB, noBpjs: newPasienDB.no_bpjs, lastVisit: newPasienDB.last_visit };
@@ -624,14 +664,12 @@ const handleSimpanAbsensi = async (e) => {
     setActiveMenu('antrian'); 
   };
 
-  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
   const handleSimpanDatabaseLama = async (e) => { 
     e.preventDefault();
     const formData = new FormData(e.target);
     const isBpjs = !!formData.get('bpjs');
     const newId = `RM00${pasienData.length + 1}`;
     
-    // 1. Simpan ke database Supabase (Kodingan aslimu belum ada ini!)
     const { error } = await supabase.from('pasien').insert([{
       id: newId,
       nama: formData.get('nama'),
@@ -641,7 +679,7 @@ const handleSimpanAbsensi = async (e) => {
       bpjs: isBpjs,
       satu_sehat: true,
       last_visit: formData.get('last_visit') || "Data Lama",
-      klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID
+      klinik_id: user.klinik_id
     }]);
 
     if (error) {
@@ -649,7 +687,6 @@ const handleSimpanAbsensi = async (e) => {
       return;
     }
 
-    // 2. Perbarui Layar
     const newPasien = {
       id: newId, nama: formData.get('nama'), nik: formData.get('nik'), hp: formData.get('hp'),
       noBpjs: formData.get('bpjs') || "-", bpjs: isBpjs, satuSehat: true, lastVisit: formData.get('last_visit') || "Data Lama"
@@ -659,12 +696,10 @@ const handleSimpanAbsensi = async (e) => {
     setShowInputDatabaseModal(false);
   };
 
-  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
   const handleUpdatePasien = async (e) => { 
     e.preventDefault();
     const formData = new FormData(e.target);
 
-    // 1. Update ke Supabase
     const { error } = await supabase.from('pasien').update({
       nama: formData.get('nama'),
       nik: formData.get('nik'),
@@ -672,21 +707,19 @@ const handleSimpanAbsensi = async (e) => {
       no_bpjs: formData.get('bpjs') || "-"
     })
     .eq('id', editPasienModal.data.id)
-    .eq('klinik_id', user.klinik_id); // <--- PENGAMAN KLINIK ID
+    .eq('klinik_id', user.klinik_id);
 
     if (error) {
       alert("Gagal update data pasien!");
       return;
     }
 
-    // 2. Perbarui Layar
     setPasienData(pasienData.map(p => p.id === editPasienModal.data.id ? {
       ...p, nama: formData.get('nama'), nik: formData.get('nik'), hp: formData.get('hp'), noBpjs: formData.get('bpjs') || "-",
     } : p));
     setEditPasienModal({isOpen: false, data: null});
   };
 
-  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
   const handleSimpanPasienLama = async (e) => { 
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -694,7 +727,6 @@ const handleSimpanAbsensi = async (e) => {
     const pasien = pasienData.find(p => p.id === selectedId);
     
     if(pasien) {
-      // Siapkan Buntilan Data untuk Database
       const newAntrianDB = {
         id_antrian: `A-00${antrianData.length + 1}`,
         pasien_id: pasien.id,
@@ -703,10 +735,9 @@ const handleSimpanAbsensi = async (e) => {
         status: "Menunggu",
         diagnosa: "",
         analisa: "",
-        klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID
+        klinik_id: user.klinik_id
       };
 
-      // 1. Simpan Antrean ke Supabase (Kodingan aslimu belum ada ini!)
       const { error } = await supabase.from('antrian').insert([newAntrianDB]);
       
       if (error) {
@@ -714,7 +745,6 @@ const handleSimpanAbsensi = async (e) => {
         return;
       }
 
-      // 2. Perbarui Layar
       const newAntrianUI = {
         idAntrian: newAntrianDB.id_antrian, pasienId: newAntrianDB.pasien_id, nama: newAntrianDB.nama,
         layanan: newAntrianDB.layanan, status: newAntrianDB.status, diagnosa: newAntrianDB.diagnosa, analisa: newAntrianDB.analisa
@@ -737,8 +767,7 @@ const handleSimpanAbsensi = async (e) => {
 
     if (showPeriksaModal.source === 'antrian') {
       
-      // 1. UPDATE STATUS DI DATABASE SUPABASE
-      const { error } = await supabase
+      const { error: errorAntrian } = await supabase
         .from('antrian')
         .update({ 
           status: 'Selesai', 
@@ -746,15 +775,20 @@ const handleSimpanAbsensi = async (e) => {
           analisa: analisaBaru
         })
         .eq('id_antrian', showPeriksaModal.data.idAntrian)
-        .eq('klinik_id', user.klinik_id); // <--- PENGAMAN KLINIK ID
+        .eq('klinik_id', user.klinik_id);
 
-      if (error) {
+      if (errorAntrian) {
         alert("Gagal menyimpan hasil pemeriksaan ke database.");
-        console.error(error);
+        console.error(errorAntrian);
         return;
       }
 
-      // 2. PERBARUI TAMPILAN LOKAL (Agar langsung hilang dari daftar)
+      await supabase
+        .from('pasien')
+        .update({ last_visit: new Date().toLocaleDateString('id-ID') })
+        .eq('nama', showPeriksaModal.data.nama)
+        .eq('klinik_id', user.klinik_id);
+
       setAntrianData(antrianData.map(a => {
         if(a.idAntrian === showPeriksaModal.data.idAntrian) {
           return { ...a, status: "Selesai", diagnosa: diagnosaBaru, analisa: analisaBaru };
@@ -762,12 +796,17 @@ const handleSimpanAbsensi = async (e) => {
         return a;
       }));
 
+      setPasienData(pasienData.map(p => {
+        if (p.nama === showPeriksaModal.data.nama) {
+          return { ...p, lastVisit: new Date().toLocaleDateString('id-ID') };
+        }
+        return p;
+      }));
+
     } else {
-      // Logika untuk edit pasien lama di rekam medis
       setPasienData(pasienData.map(p => p.id === showPeriksaModal.data.id ? { ...p } : p));
     }
 
-    // 3. LOGIKA PENGINGAT / REMINDER KONTROL (TERHUBUNG KE SUPABASE)
     if (tglKembali && keperluan) {
       const pasien = pasienData.find(p => p.nama === showPeriksaModal.data.nama);
       const noHpPasien = pasien?.hp ? pasien.hp : "-";
@@ -779,12 +818,11 @@ const handleSimpanAbsensi = async (e) => {
         nowa: noHpPasien, 
         status: "Belum Dihubungi",
         jenis: keperluan,
-        klinik_id: 'klinik_pusat'
+        klinik_id: user.klinik_id
       };
 
       const simpanReminderKeDatabase = async () => {
         const { error } = await supabase.from('reminder').insert([newReminderDB]);
-        // INI YANG BARU: Memunculkan pop-up kalau Supabase menolak data
         if (error) {
           alert("Error Supabase Reminder: " + error.message);
         }
@@ -795,15 +833,13 @@ const handleSimpanAbsensi = async (e) => {
       setReminderData([...reminderData, newReminderUI]);
     }
 
-    // 4. TUTUP POP-UP MODAL
     setShowPeriksaModal({ isOpen: false, data: null, source: '' });
   };
 
-const handleUpdateReminder = async (e) => {
+  const handleUpdateReminder = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
 
-    // 1. Kumpulkan data baru yang diketik di pop-up
     const updatedData = {
       nama: formData.get('nama'),
       waktu: formData.get('waktu'),
@@ -812,18 +848,17 @@ const handleUpdateReminder = async (e) => {
       status: formData.get('status')
     };
 
-    // 2. Tembakkan perintah UPDATE ke Supabase berdasarkan ID Reminder
     const { error } = await supabase
       .from('reminder')
       .update(updatedData)
-      .eq('id_reminder', editReminderModal.data.id);
+      .eq('id_reminder', editReminderModal.data.id)
+      .eq('klinik_id', user.klinik_id);
 
     if (error) {
       alert("Gagal mengupdate status di database: " + error.message);
       return;
     }
 
-    // 3. Perbarui tampilan layar agar selaras dengan database
     setReminderData(reminderData.map(r => 
       r.id === editReminderModal.data.id ? { ...r, ...updatedData } : r
     ));
@@ -851,13 +886,11 @@ const handleUpdateReminder = async (e) => {
     } 
     setAksesModal({ isOpen: false, mode: 'add', data: null }); 
   };
-  
   const handleDeleteAkses = (id) => { 
     if (window.confirm('Yakin ingin menghapus akses akun ini?')) { 
       setUsersData(usersData.filter(u => u.id !== id)); 
     } 
   };
-  
     
   const handleSimpanAbsensiSusulan = (e) => {
     e.preventDefault();
@@ -3514,12 +3547,12 @@ const handleUpdatePassword = async (e) => {
                       <label className="block text-sm font-bold text-slate-700 mb-1">Layanan Tujuan <span className="text-red-500">*</span></label>
                       <select name="layanan" required className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none bg-white">
                         <option value="">Pilih Layanan</option>
-                        <option value="Pemeriksaan Umum">Pemeriksaan Umum</option>
-                        <option value="Pemeriksaan Kehamilan (ANC)">Pemeriksaan Kehamilan (ANC)</option>
-                        <option value="Persalinan (Partus)">Persalinan (Partus)</option>
-                        <option value="Nifas (PNC)">Nifas (PNC)</option>
-                        <option value="Keluarga Berencana (KB)">Keluarga Berencana (KB)</option>
-                        <option value="Imunisasi / Anak">Imunisasi / Anak</option>
+                        <option value="lap_bidan">Pemeriksaan Umum</option>
+                        <option value="lap_anc">Pemeriksaan Kehamilan (ANC)</option>
+                        <option value="lap_partus">Persalinan (Partus)</option>
+                        <option value="lap_shk">Laporan SHK</option>
+                        <option value="lap_kb">Keluarga Berencana (KB)</option>
+                        <option value="lap_imunisasi">Imunisasi / Anak</option>
                       </select>
                     </div>
 
