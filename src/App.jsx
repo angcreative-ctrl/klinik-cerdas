@@ -603,7 +603,11 @@ const handleSimpanAbsensi = async (e) => {
     };
 
     // 4. Tembakkan ke tabel Antrian Supabase
-    const { error: errorAntrian } = await supabase.from('antrian').insert([newAntrianDB]);
+    const { error: errorAntrian } = await supabase.from('antrian').insert([{
+      ...newAntrianDB,
+      klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID UNTUK ANTRIAN
+    }]);
+    
     if (errorAntrian) {
       alert("Error Simpan Antrian: " + errorAntrian.message);
     }
@@ -620,12 +624,32 @@ const handleSimpanAbsensi = async (e) => {
     setActiveMenu('antrian'); 
   };
 
-  const handleSimpanDatabaseLama = (e) => {
+  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
+  const handleSimpanDatabaseLama = async (e) => { 
     e.preventDefault();
     const formData = new FormData(e.target);
     const isBpjs = !!formData.get('bpjs');
     const newId = `RM00${pasienData.length + 1}`;
     
+    // 1. Simpan ke database Supabase (Kodingan aslimu belum ada ini!)
+    const { error } = await supabase.from('pasien').insert([{
+      id: newId,
+      nama: formData.get('nama'),
+      nik: formData.get('nik'),
+      hp: formData.get('hp'),
+      no_bpjs: formData.get('bpjs') || "-",
+      bpjs: isBpjs,
+      satu_sehat: true,
+      last_visit: formData.get('last_visit') || "Data Lama",
+      klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID
+    }]);
+
+    if (error) {
+      alert("Gagal menyimpan ke database: " + error.message);
+      return;
+    }
+
+    // 2. Perbarui Layar
     const newPasien = {
       id: newId, nama: formData.get('nama'), nik: formData.get('nik'), hp: formData.get('hp'),
       noBpjs: formData.get('bpjs') || "-", bpjs: isBpjs, satuSehat: true, lastVisit: formData.get('last_visit') || "Data Lama"
@@ -635,33 +659,75 @@ const handleSimpanAbsensi = async (e) => {
     setShowInputDatabaseModal(false);
   };
 
-  const handleUpdatePasien = (e) => {
+  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
+  const handleUpdatePasien = async (e) => { 
     e.preventDefault();
     const formData = new FormData(e.target);
+
+    // 1. Update ke Supabase
+    const { error } = await supabase.from('pasien').update({
+      nama: formData.get('nama'),
+      nik: formData.get('nik'),
+      hp: formData.get('hp'),
+      no_bpjs: formData.get('bpjs') || "-"
+    })
+    .eq('id', editPasienModal.data.id)
+    .eq('klinik_id', user.klinik_id); // <--- PENGAMAN KLINIK ID
+
+    if (error) {
+      alert("Gagal update data pasien!");
+      return;
+    }
+
+    // 2. Perbarui Layar
     setPasienData(pasienData.map(p => p.id === editPasienModal.data.id ? {
       ...p, nama: formData.get('nama'), nik: formData.get('nik'), hp: formData.get('hp'), noBpjs: formData.get('bpjs') || "-",
     } : p));
     setEditPasienModal({isOpen: false, data: null});
   };
 
-  const handleSimpanPasienLama = (e) => {
+  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
+  const handleSimpanPasienLama = async (e) => { 
     e.preventDefault();
     const formData = new FormData(e.target);
     const selectedId = formData.get('pasien_id');
     const pasien = pasienData.find(p => p.id === selectedId);
     
     if(pasien) {
-      const newAntrian = {
-        idAntrian: `A-00${antrianData.length + 1}`, pasienId: pasien.id, nama: pasien.nama,
-        layanan: formData.get('layanan'), status: "Menunggu", diagnosa: "", analisa: ""
+      // Siapkan Buntilan Data untuk Database
+      const newAntrianDB = {
+        id_antrian: `A-00${antrianData.length + 1}`,
+        pasien_id: pasien.id,
+        nama: pasien.nama,
+        layanan: formData.get('layanan'),
+        status: "Menunggu",
+        diagnosa: "",
+        analisa: "",
+        klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID
       };
-      setAntrianData([...antrianData, newAntrian]);
+
+      // 1. Simpan Antrean ke Supabase (Kodingan aslimu belum ada ini!)
+      const { error } = await supabase.from('antrian').insert([newAntrianDB]);
+      
+      if (error) {
+        alert("Gagal menambahkan antrean: " + error.message);
+        return;
+      }
+
+      // 2. Perbarui Layar
+      const newAntrianUI = {
+        idAntrian: newAntrianDB.id_antrian, pasienId: newAntrianDB.pasien_id, nama: newAntrianDB.nama,
+        layanan: newAntrianDB.layanan, status: newAntrianDB.status, diagnosa: newAntrianDB.diagnosa, analisa: newAntrianDB.analisa
+      };
+      
+      setAntrianData([...antrianData, newAntrianUI]);
       setPasienData(pasienData.map(p => p.id === pasien.id ? {...p, lastVisit: new Date().toLocaleDateString('id-ID')} : p));
-      setShowPasienLamaModal(false); setActiveMenu('antrian');
+      setShowPasienLamaModal(false); 
+      setActiveMenu('antrian');
     }
   };
 
- const handleSimpanDiagnosa = async (e) => {
+  const handleSimpanDiagnosa = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const tglKembali = formData.get('tgl_kembali');
@@ -679,7 +745,8 @@ const handleSimpanAbsensi = async (e) => {
           diagnosa: diagnosaBaru,
           analisa: analisaBaru
         })
-        .eq('id_antrian', showPeriksaModal.data.idAntrian);
+        .eq('id_antrian', showPeriksaModal.data.idAntrian)
+        .eq('klinik_id', user.klinik_id); // <--- PENGAMAN KLINIK ID
 
       if (error) {
         alert("Gagal menyimpan hasil pemeriksaan ke database.");
@@ -856,7 +923,10 @@ const handleUpdateReminder = async (e) => {
     };
 
     // 2. Tembakkan ke tabel 'transaksi' di Supabase
-    const { error } = await supabase.from('transaksi').insert([newTransactionDB]);
+    const { error } = await supabase.from('transaksi').insert([{
+      ...newTransactionDB,
+      klinik_id: user.klinik_id // <--- SUNTIKAN KLINIK ID UNTUK TRANSAKSI BARU
+    }]);
     
     if (error) {
       alert("Gagal menyimpan transaksi ke database.");
@@ -880,9 +950,29 @@ const handleUpdateReminder = async (e) => {
     setKategoriKeuangan('');
   };
 
-  const handleUpdateFinance = (e) => {
+  // --- KITA UBAH JADI ASYNC AGAR BISA AKSES SUPABASE ---
+  const handleUpdateFinance = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+
+    // 1. Simpan Perubahan ke Database Supabase (Kodingan aslimu belum ada ini!)
+    const { error } = await supabase
+      .from('transaksi')
+      .update({
+        tanggal: formData.get('tanggal'),
+        kategori: formData.get('kategori'),
+        nominal: parseInt(formData.get('nominal')),
+        keterangan: formData.get('keterangan')
+      })
+      .eq('id_transaksi', editFinanceModal.data.id) // Cari ID Transaksinya
+      .eq('klinik_id', user.klinik_id); // <--- PENGAMAN KLINIK ID
+
+    if (error) {
+      alert("Gagal mengupdate transaksi ke database: " + error.message);
+      return;
+    }
+
+    // 2. Perbarui Tampilan di Layar (UI)
     setFinanceTransactions(financeTransactions.map(t => t.id === editFinanceModal.data.id ? {
       ...t,
       tanggal: formData.get('tanggal'),
@@ -890,9 +980,9 @@ const handleUpdateReminder = async (e) => {
       nominal: parseInt(formData.get('nominal')),
       desc: formData.get('keterangan')
     } : t));
+    
     setEditFinanceModal({ isOpen: false, data: null });
   };
-
  
   const fetchLaporanData = async () => {
     const tables = ['laporan_anc', 'laporan_partus', 'laporan_shk', 'laporan_imunisasi', 'laporan_kb', 'laporan_bidan'];
