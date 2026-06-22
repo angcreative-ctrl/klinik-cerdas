@@ -568,12 +568,12 @@ const handleSimpanAbsensi = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const isBpjs = formData.get('cara_bayar') === 'BPJS';
-    const waktuSekarang = Date.now(); // Kunci ID Unik Anti-Kembar
+    const waktuSekarang = Date.now(); 
     const newId = `RM-${waktuSekarang}`; 
     const tanggalSekarang = new Date().toLocaleDateString('id-ID');
-    const layananDipilih = formData.get('layanan'); // Ambil kode layanan (lap_anc, dll)
+    const layananDipilih = formData.get('layanan'); 
 
-    // Peta nama layanan untuk tampilan di papan Antrian UI
+    // Peta nama layanan untuk tampilan cantik di papan Antrian UI
     const namaLayananMap = {
       'lap_bidan': 'Pemeriksaan Umum',
       'lap_anc': 'Pemeriksaan Kehamilan (ANC)',
@@ -593,7 +593,7 @@ const handleSimpanAbsensi = async (e) => {
       bpjs: isBpjs, 
       satu_sehat: true, 
       last_visit: tanggalSekarang,
-      klinik_id: user.klinik_id // <--- MENGGUNAKAN USER KLINIK ID YANG PASTI AMAN & ADA
+      klinik_id: user.klinik_id 
     };
 
     // 2. Tembakkan ke tabel Pasien Supabase
@@ -608,40 +608,47 @@ const handleSimpanAbsensi = async (e) => {
       id_antrian: `A-${waktuSekarang}`,
       pasien_id: newId,
       nama: formData.get('nama'),
-      layanan: namaLayananMap[layananDipilih] || layananDipilih, // Konversi kode ke nama cantik di layar
+      layanan: namaLayananMap[layananDipilih] || layananDipilih, // Jika dropdown berupa teks panjang, dia akan langsung pakai teks tersebut
       status: "Menunggu",
-      klinik_id: user.klinik_id // <--- MENGGUNAKAN USER KLINIK ID YANG PASTI AMAN & ADA
+      klinik_id: user.klinik_id 
     };
 
     // 4. Tembakkan ke tabel Antrian Supabase
     const { error: errorAntrian } = await supabase.from('antrian').insert([newAntrianDB]);
-    
     if (errorAntrian) {
       alert("Error Simpan Antrian: " + errorAntrian.message);
     }
 
     // ========================================================
-    // TUGAS BARU: TEMBAK DRAFT KOSONG KE TABEL LAPORAN SECARA OTOMATIS
+    // TUGAS BARU: JAGA-JAGA JIKA DROPDOWN MASIH PAKAI TEKS PANJANG / KODE PENDEK
     // ========================================================
     const petaTabelSupabase = {
+      // Jika pakai kode pendek
       'lap_bidan': 'laporan_bidan',
       'lap_anc': 'laporan_anc',
       'lap_partus': 'laporan_partus',
       'lap_shk': 'laporan_shk',
       'lap_imunisasi': 'laporan_imunisasi',
-      'lap_kb': 'laporan_kb'
+      'lap_kb': 'laporan_kb',
+      // Jika pakai teks panjang bawaan lama
+      'Pemeriksaan Umum': 'laporan_bidan',
+      'Pemeriksaan Kehamilan (ANC)': 'laporan_anc',
+      'Persalinan (Partus)': 'laporan_partus',
+      'Laporan SHK': 'laporan_shk',
+      'Imunisasi / Anak': 'laporan_imunisasi',
+      'Keluarga Berencana (KB)': 'laporan_kb'
     };
 
     const namaTabelTujuan = petaTabelSupabase[layananDipilih];
 
     if (namaTabelTujuan) {
-      const kodePrefix = layananDipilih.toUpperCase().replace('_', '');
+      // Membuat awalan ID otomatis (ANC, PARTUS, SHK, dll)
+      const kodePrefix = namaTabelTujuan.replace('laporan_', '').toUpperCase();
       
-      // Kirim data draf awal, kolom medis lainnya otomatis NULL/kosong di database
       const { error: errDraft } = await supabase.from(namaTabelTujuan).insert([{
         id: `${kodePrefix}-${waktuSekarang}`,
         nama_pasien: formData.get('nama'),
-        nama_ibu: namaTabelTujuan === 'laporan_shk' ? formData.get('nama') : undefined, // Khusus SHK menggunakan kolom nama_ibu
+        nama_ibu: namaTabelTujuan === 'laporan_shk' ? formData.get('nama') : undefined, 
         tanggal_periksa: new Date().toISOString().split('T')[0],
         tanggal_kunjungan: new Date().toISOString().split('T')[0],
         tanggal: new Date().toISOString().split('T')[0],
@@ -652,12 +659,17 @@ const handleSimpanAbsensi = async (e) => {
     }
     // ========================================================
 
-    // 5. Perbarui tampilan di layar (UI)
+    // 5. Perbarui tampilan di layar (UI) Pasien & Antrian
     const newPasienUI = { ...newPasienDB, noBpjs: newPasienDB.no_bpjs, lastVisit: newPasienDB.last_visit };
     setPasienData([newPasienUI, ...pasienData]);
     
     const newAntrianUI = { ...newAntrianDB, idAntrian: newAntrianDB.id_antrian, pasienId: newAntrianDB.pasien_id };
     setAntrianData([...antrianData, newAntrianUI]);
+
+    // 6. SUNTIKAN OTOMATIS: Ambil data laporan terbaru dari database agar langsung muncul di layar laporan
+    if (typeof fetchLaporanData === 'function') {
+      fetchLaporanData();
+    }
 
     setShowPasienModal(false); 
     setDobInput(''); 
